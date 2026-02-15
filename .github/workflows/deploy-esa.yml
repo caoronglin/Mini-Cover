@@ -1,0 +1,55 @@
+name: Deploy to Aliyun ESA
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'functions/**'
+      - 'edge-functions/esa/**'
+      - 'esa.config.js'
+      - '.github/workflows/deploy-esa.yml'
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+        env:
+          VITE_BING_API_URL: ${{ secrets.VITE_BING_API_URL }}
+
+      - name: Install ESA CLI
+        run: npm install -g @alicloud/esa-cli
+
+      - name: Configure ESA
+        run: |
+          esa config set access_key_id ${{ secrets.ESA_ACCESS_KEY_ID }}
+          esa config set access_key_secret ${{ secrets.ESA_ACCESS_KEY_SECRET }}
+
+      - name: Deploy to ESA
+        run: |
+          esa deploy \
+            --config esa.config.js \
+            --env BING_API_KEY=${{ secrets.BING_API_KEY }} \
+            --env KV_NAMESPACE_ID=${{ secrets.ESA_KV_NAMESPACE_ID }}
+
+      - name: Verify deployment
+        run: |
+          sleep 10
+          curl -f https://your-esa-domain.com/api/health || exit 1

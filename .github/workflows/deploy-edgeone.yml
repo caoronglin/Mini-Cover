@@ -1,0 +1,68 @@
+name: Deploy to Tencent EdgeOne
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'functions/**'
+      - 'edge-functions/edgeone/**'
+      - 'edgeone.config.js'
+      - '.github/workflows/deploy-edgeone.yml'
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build project
+        run: npm run build
+        env:
+          VITE_BING_API_URL: ${{ secrets.VITE_BING_API_URL }}
+          VITE_PLATFORM: edgeone
+
+      - name: Install EdgeOne CLI
+        run: npm install -g @tencent/edgeone-cli
+
+      - name: Configure EdgeOne
+        run: |
+          eo config set secret_id ${{ secrets.TENCENT_SECRET_ID }}
+          eo config set secret_key ${{ secrets.TENCENT_SECRET_KEY }}
+
+      - name: Deploy edge functions
+        run: |
+          eo functions deploy \
+            --config edgeone.config.js \
+            --zone-id ${{ secrets.TENCENT_EDGEONE_ZONE_ID }}
+
+      - name: Deploy Pages
+        run: |
+          eo pages deploy \
+            --dir dist \
+            --project-name mini-cover \
+            --environment production
+
+      - name: Verify deployment
+        run: |
+          sleep 15
+          curl -f https://your-edgeone-domain.com/api/health || exit 1
+
+      - name: Purge cache
+        run: |
+          eo cache purge \
+            --zone-id ${{ secrets.TENCENT_EDGEONE_ZONE_ID }} \
+            --urls "https://your-edgeone-domain.com/*"
