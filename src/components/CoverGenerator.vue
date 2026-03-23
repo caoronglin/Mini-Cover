@@ -1,452 +1,604 @@
 <template>
-  <main class="container mx-auto max-w-[1600px] p-4 flex flex-col lg:flex-row lg:flex-wrap justify-center items-center gap-5">
-    <!-- 控制面板 -->
-    <div class="w-full lg:flex-1 flex flex-col p-4 bg-white rounded-lg shadow-md">
-      <!-- 图标选择器 -->
-      <div class="flex gap-2 items-center mb-3">
-        <input 
-          type="text" 
-          v-model="iconName"
-          @input="loadIcon"
-          placeholder="输入图标名称，例如 logos:chrome"
-          class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition-all duration-300 hover:border-green-500 text-sm"
-        />
-        <a 
-          href="https://yesicon.app/" 
-          target="_blank"
-          class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm whitespace-nowrap"
-        >图标库</a>
+  <div class="cover-generator">
+    <header class="header">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <polyline points="21 15 16 10 5 21"/>
+        </svg>
+        <span>CoverGen</span>
       </div>
+      <button class="random-btn" @click="loadRandomBingImage" :disabled="loading">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="23 4 23 10 17 10"/>
+          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+        </svg>
+        <span>{{ loading ? '加载中...' : '随机Bing图片' }}</span>
+      </button>
+    </header>
 
-      <!-- 背景设置 -->
-      <div class="flex gap-2 mb-3">
-        <label 
-          for="inputBgImage" 
-          class="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer text-center text-sm"
-        >上传背景图片</label>
-        <input type="file" id="inputBgImage" accept="image/*" @change="updatePreview('bg', $event)" class="hidden">
-        <label 
-          for="inputSquareImage" 
-          class="flex-1 px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer text-center text-sm"
-        >上传图标图片</label>
-        <input type="file" id="inputSquareImage" accept="image/*" @change="updatePreview('square', $event)" class="hidden">
-        <a 
-          href="https://icon.ruom.top" 
-          target="_blank"
-          class="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm whitespace-nowrap"
-        >图标下载站</a>
-      </div>
-
-      <!-- 颜色设置 -->
-      <div class="grid grid-cols-2 gap-2 mb-3">
-        <div class="flex items-center gap-2">
-          <label class="whitespace-nowrap" for="inputTextColor">标题颜色</label>
-          <input 
-            type="color" 
-            id="inputTextColor"
-            v-model="state.textColor"
-            @input="updatePreview('textColor', $event)"
-            class="w-full h-6 rounded cursor-pointer"
-          >
+    <main class="main">
+      <div class="preview-section">
+        <div class="canvas-container" :style="canvasStyle">
+          <canvas
+            ref="canvasRef"
+            :width="canvasWidth"
+            :height="canvasHeight"
+            @mousedown="startDrag"
+            @mousemove="onDrag"
+            @mouseup="stopDrag"
+            @mouseleave="stopDrag"
+          />
         </div>
-        <div class="flex items-center gap-2">
-          <label class="whitespace-nowrap" for="inputWatermarkColor">水印颜色</label>
-          <input 
-            type="color"
-            id="inputWatermarkColor"
-            v-model="state.watermarkColor"
-            @input="updatePreview('watermarkColor', $event)"
-            class="w-full h-6 rounded cursor-pointer"
+
+        <div class="size-presets">
+          <button
+            v-for="preset in sizePresets"
+            :key="preset.name"
+            class="preset-btn"
+            :class="{ active: currentSize.name === preset.name }"
+            @click="setSize(preset)"
           >
+            {{ preset.name }}
+          </button>
         </div>
       </div>
 
-      <!-- 背景模糊设置 -->
-      <div class="flex flex-col sm:flex-row items-center gap-3 mb-3">
-        <div class="w-full sm:flex-[6] flex items-center gap-2">
-          <label class="whitespace-nowrap" for="inputBgBlur">背景模糊</label>
-          <input 
-            type="range"
-            id="inputBgBlur"
-            min="0"
-            max="20"
-            v-model="state.bgBlur"
-            @input="updatePreview('bgBlur', $event)"
-            class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          >
-        </div>
-        <div class="w-full sm:flex-[4] flex items-center gap-2">
-          <label class="whitespace-nowrap" for="inputBgColor">背景颜色</label>
-          <input 
-            type="color"
-            id="inputBgColor"
-            v-model="state.bgColor"
-            @input="updatePreview('bgColor', $event)"
-            class="w-full h-6 rounded cursor-pointer"
-          >
-        </div>
-      </div>
+      <aside class="controls-section">
+        <div class="controls-panel">
+          <div class="control-group">
+            <label>主标题</label>
+            <input
+              v-model="store.text"
+              type="text"
+              placeholder="输入主标题"
+              @input="drawCanvas"
+            />
+          </div>
 
-      <!-- 图标和阴影设置 -->
-      <div 
-        class="flex flex-col gap-3 overflow-hidden transition-all duration-300 ease-out"
-        :class="state.squareImageUrl ? 'mb-3 max-h-[300px] sm:max-h-[200px] opacity-100' : 'max-h-0 opacity-0'"
-      >
-        <!-- 图标控制 -->
-        <div class="flex flex-col sm:flex-row gap-3">
-          <div class="w-full sm:flex-1 flex items-center gap-2">
-            <label class="whitespace-nowrap" for="inputSquareSize">图标大小</label>
-            <input 
-              type="range"
-              id="inputSquareSize"
-              min="200"
-              max="500"
-              v-model="state.squareSize"
-              @input="updatePreview('squareSize', $event)"
-              class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-            >
+          <div class="control-group">
+            <label>副标题</label>
+            <input
+              v-model="store.subtitle"
+              type="text"
+              placeholder="输入副标题"
+              @input="drawCanvas"
+            />
           </div>
-          <div class="w-full sm:flex-1 flex items-center gap-2">
-            <label class="whitespace-nowrap" for="inputRotation">图标旋转</label>
-            <input 
-              type="range"
-              id="inputRotation"
-              min="0"
-              max="360"
-              v-model="state.rotation"
-              @input="updatePreview('rotation', $event)"
-              class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-            >
-          </div>
-        </div>
 
-        <!-- 阴影控制 -->
-        <div class="flex flex-col sm:flex-row gap-3">
-          <div class="w-full sm:flex-[6] flex items-center gap-2">
-            <label class="whitespace-nowrap" for="inputShadowStrength">图标阴影大小</label>
-            <input 
-              type="range"
-              id="inputShadowStrength"
-              min="0"
-              max="100"
-              v-model.number="state.shadowStrength"
-              @input="updatePreview('shadowStrength', $event)"
-              class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-            >
-          </div>
-          <div class="w-full sm:flex-[4] flex items-center gap-2">
-            <label class="whitespace-nowrap" for="inputShadowColor">图标阴影颜色</label>
-            <input 
-              type="color"
-              id="inputShadowColor"
-              :value="state.shadowColor.startsWith('rgba') ? '#000000' : state.shadowColor"
-              @input="updatePreview('shadowColor', $event)"
-              class="w-full h-6 rounded cursor-pointer"
-            >
-          </div>
-        </div>
+          <div class="control-row">
+            <div class="control-group">
+              <label>文字颜色</label>
+              <input
+                v-model="store.textColor"
+                type="color"
+                @input="drawCanvas"
+              />
+            </div>
 
-        <!-- 图标背景控制 -->
-        <div class="flex flex-col sm:flex-row gap-3">
-          <div class="w-full sm:flex-[6] flex items-center gap-2">
-            <label class="whitespace-nowrap" for="inputIconBgSize">图标背景大小</label>
-            <input 
-              type="range"
-              id="inputIconBgSize"
-              min="0"
-              max="20"
-              v-model="state.iconBgSize"
-              @input="updatePreview('iconBgSize', $event)"
-              class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-            >
-          </div>
-          <div class="w-full sm:flex-[4] flex items-center gap-2">
-            <label class="whitespace-nowrap" for="inputIconColor">图标背景颜色</label>
-            <input 
-              type="color"
-              id="inputIconColor"
-              v-model="state.iconColor"
-              @input="updatePreview('iconColor', $event)"
-              class="w-full h-6 rounded cursor-pointer"
-            >
-          </div>
-        </div>
-      </div>
-
-      <!-- 文本设置 -->
-      <div class="flex flex-col sm:flex-row gap-3 mb-3">
-        <div class="w-full sm:flex-1 flex items-center gap-2">
-          <label class="whitespace-nowrap" for="inputTextSize">标题大小</label>
-          <input 
-            type="range"
-            id="inputTextSize"
-            min="100"
-            max="300"
-            v-model="state.textSize"
-            @input="updatePreview('textSize', $event)"
-            class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          >
-        </div>
-        <div class="w-full sm:flex-1 flex items-center gap-2">
-          <label class="whitespace-nowrap">字体</label>
-          <div class="relative flex-1" @click.stop>
-            <button
-              @click="state.isFontMenuOpen = !state.isFontMenuOpen"
-              class="w-full px-2 py-1 text-sm border border-gray-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition-all duration-300 hover:border-green-500 flex items-center"
-              :style="{ fontFamily: state.selectedFont }"
-            >
-              <span class="flex-1 text-center">{{ defaultConfig.fontOptions.find(f => f.value === state.selectedFont)?.label }}</span>
-              <svg 
-                class="w-3.5 h-3.5 text-gray-500 transition-transform shrink-0"
-                :class="{ 'rotate-180': state.isFontMenuOpen }"
-                viewBox="0 0 24 24"
-              >
-                <path stroke="currentColor" stroke-width="2" d="M19 9l-7 7-7-7" fill="none"/>
-              </svg>
-            </button>
-            
-            <div
-              class="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg max-h-60 overflow-y-auto py-1 transform transition-all duration-200 ease-out origin-top"
-              :class="state.isFontMenuOpen ? 'opacity-100 visible scale-100' : 'opacity-0 invisible scale-95'"
-            >
-              <div
-                v-for="font in defaultConfig.fontOptions"
-                :key="font.value"
-                @click="selectFont(font.value)"
-                class="px-3 py-1.5 text-sm hover:bg-green-50 cursor-pointer"
-                :class="{ 'text-green-600': state.selectedFont === font.value }"
-              >
-                <span :style="{ fontFamily: font.value }" class="block text-center">{{ font.label }}</span>
-              </div>
+            <div class="control-group">
+              <label>对齐方式</label>
+              <select v-model="store.textAlign" @change="drawCanvas">
+                <option value="center">居中</option>
+                <option value="left">左对齐</option>
+                <option value="right">右对齐</option>
+              </select>
             </div>
           </div>
+
+          <div class="control-group">
+            <label>遮罩透明度: {{ store.overlayOpacity }}%</label>
+            <input
+              v-model="store.overlayOpacity"
+              type="range"
+              min="0"
+              max="80"
+              @input="drawCanvas"
+            />
+          </div>
+
+          <div class="control-group">
+            <label>模糊度: {{ store.bgBlur }}px</label>
+            <input
+              v-model="store.bgBlur"
+              type="range"
+              min="0"
+              max="20"
+              @input="drawCanvas"
+            />
+          </div>
+
+          <div class="actions">
+            <button class="action-btn primary" @click="downloadImage">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+              </svg>
+              下载封面
+            </button>
+            <button class="action-btn secondary" @click="resetSettings">
+              重置设置
+            </button>
+          </div>
         </div>
-      </div>
-
-      <!-- 行高和立体效果设置 -->
-      <div class="flex flex-col sm:flex-row mb-3">
-        <div 
-          class="flex items-center gap-2 overflow-hidden transition-all duration-300 ease-out"
-          :class="state.hasMultipleLines ? ['opacity-100 mb-3 sm:mb-0 sm:mr-4','w-full sm:w-[300px]'] : 'h-0 opacity-0 w-0'"
-        >
-          <label class="whitespace-nowrap" for="inputLineHeight">标题行高</label>
-          <input 
-            type="range"
-            id="inputLineHeight"
-            min="0.5"
-            max="2"
-            step="0.1"
-            v-model.number="state.lineHeight"
-            @input="updatePreview('lineHeight', $event)"
-            class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          >
-        </div>
-        <div class="flex-1 flex items-center gap-2">
-          <label class="whitespace-nowrap" for="input3D">立体字</label>
-          <input 
-            type="range"
-            id="input3D"
-            min="0"
-            max="10"
-            step="1"
-            v-model.number="state.text3D"
-            @input="updatePreview('text3D', $event)"
-            class="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-          >
-        </div>
-      </div>
-
-      <!-- 标题输入 -->
-      <textarea 
-        id="inputText"
-        :value="''"
-        @input="updatePreview('text', $event)"
-        placeholder="输入标题"
-        rows="2"
-        class="w-full min-h-[60px] px-3 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition-all duration-300 hover:border-green-500 resize-y mb-3"
-      ></textarea>
-
-      <!-- 水印设置 -->
-      <div class="flex items-center gap-3 mb-3">
-        <input 
-          type="text"
-          id="inputWatermark"
-          @input="updatePreview('watermark', $event)"
-          placeholder="输入水印"
-          class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:border-green-500 focus:ring-1 focus:ring-green-500 outline-none transition-all duration-300 hover:border-green-500"
-        >
-      </div>
-
-      <!-- 操作按钮 -->
-      <div class="flex gap-3">
-        <button 
-          @click="saveWebp"
-          class="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm"
-        >
-          保存图片
-        </button>
-        <ImageUploader canvas-id="canvasPreview" />
-        <button 
-          @click="openSettings"
-          class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
-          title="设置"
-        >
-          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <!-- 画布预览 -->
-    <div class="relative w-full lg:flex-[2] overflow-hidden">
-      <canvas 
-        id="canvasPreview" 
-        width="1000" 
-        height="500" 
-        @dragover.prevent="handleCanvasDragOver"
-        @dragleave.prevent="handleCanvasDragLeave"
-        @drop.prevent="handleCanvasDrop" 
-        class="w-full h-auto rounded-lg shadow-md"
-      ></canvas>
-      <!-- 图标区高亮 -->
-      <div
-        v-if="dragHighlight === 'icon'"
-        class="pointer-events-none absolute left-1/2 top-1/2"
-        :style="{
-          width: '200px',
-          height: '200px',
-          transform: 'translate(-50%, -50%)',
-          border: '3px dashed #22c55e',
-          borderRadius: '24px',
-          boxSizing: 'border-box',
-          zIndex: 10
-        }"
-      ></div>
-      <!-- 背景区高亮 -->
-      <div
-        v-if="dragHighlight === 'bg'"
-        class="pointer-events-none absolute inset-0"
-        style="border: 3px dashed #22c55e; border-radius: 16px; box-sizing: border-box; z-index: 9;"
-      ></div>
-    </div>
-
-    <!-- 设置模态框 -->
-    <SettingsModal
-      v-model="showSettings"
-    />
-  </main>
+      </aside>
+    </main>
+  </div>
 </template>
 
-<script>
-import { state, updatePreview, saveWebp, drawSquareImage, initialize } from '../assets/script.js';
-import { defaultConfig } from '../config';
-import ImageUploader from './ImageUploader.vue';
-import SettingsModal from './SettingsModal.vue';
+<script setup lang="ts">
+import { ref, onMounted, computed } from 'vue'
+import { useCoverStore } from '@/stores/cover'
 
-export default {
-  components: {
-    ImageUploader,
-    SettingsModal
-  },
-  data() {
-    return {
-      state,
-      defaultConfig,
-      iconName: '',
-      iconUrl: null,
-      showSettings: false,
-      dragHighlight: null
-    };
-  },
-  mounted() {
-    this.loadStyles();
-    initialize();
-    
-    // Add click outside listener
-    document.addEventListener('click', this.handleClickOutside);
-  },
-  unmounted() {
-    // Remove click outside listener
-    document.removeEventListener('click', this.handleClickOutside);
-  },
-  methods: {
-    loadStyles() {
-      defaultConfig.fontStyles.forEach(url => {
-        const link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = url;
-        document.head.appendChild(link);
-      });
-    },
-    updatePreview,
-    saveWebp,
-    loadIcon() {
-      if (this.iconName) {
-        this.iconUrl = `https://api.iconify.design/${this.iconName}.svg`;
-        this.selectIcon();
-      } else {
-        this.iconUrl = null;
-        state.squareImageUrl = null;
+const store = useCoverStore()
+const canvasRef = ref<HTMLCanvasElement | null>(null)
+const bgImage = ref<HTMLImageElement | null>(null)
+const loading = ref(false)
+
+const canvasWidth = ref(1200)
+const canvasHeight = ref(630)
+
+interface SizePreset {
+  name: string
+  width: number
+  height: number
+}
+
+const sizePresets: SizePreset[] = [
+  { name: 'YouTube', width: 1280, height: 720 },
+  { name: '小红书', width: 1242, height: 1660 },
+  { name: '公众号', width: 900, height: 383 },
+  { name: 'B站', width: 1146, height: 717 },
+  { name: '微博', width: 560, height: 260 }
+]
+const currentSize = ref<SizePreset>(sizePresets[0])
+
+const canvasStyle = computed(() => ({
+  maxWidth: `${canvasWidth.value}px`
+}))
+
+const BING_API = 'https://bing.cnortles.top/api'
+
+const loadRandomBingImage = async (): Promise<void> => {
+  loading.value = true
+  try {
+    const randomIndex = Math.floor(Math.random() * 8)
+    const response = await fetch(`${BING_API}?format=webp&index=${randomIndex}`)
+    if (response.ok) {
+      const data = await response.json()
+      if (data.url) {
+        await loadImage(data.url)
       }
-    },
-    selectIcon() {
-      if (this.iconUrl) {
-        fetch(this.iconUrl)
-          .then(response => response.blob())
-          .then(blob => {
-            const file = new File([blob], 'icon.svg', { type: 'image/svg+xml' });
-            state.squareImageUrl = URL.createObjectURL(file);
-            updatePreview('square', { target: { files: [file] } });
-          })
-          .catch(error => {
-            console.error('加载图标时出错:', error);
-            this.showSuccessPopup('加载图标时出错: ' + error.message, false);
-          });
-      }
-    },
-    drawSquareImage,
-    getDropArea(event) {
-      const canvas = event.target;
-      const rect = canvas.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const y = event.clientY - rect.top;
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      const centerRadius = 100;
-      const distanceToCenter = Math.sqrt(
-        Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2)
-      );
-      return distanceToCenter < centerRadius ? 'icon' : 'bg';
-    },
-    handleCanvasDragOver(event) {
-      this.dragHighlight = this.getDropArea(event);
-    },
-    handleCanvasDragLeave() {
-      this.dragHighlight = null;
-    },
-    handleCanvasDrop(event) {
-      this.dragHighlight = null;
-      const file = event.dataTransfer.files[0];
-      if (!file || !file.type.startsWith('image/')) return;
-      const area = this.getDropArea(event);
-      this.updatePreview(area === 'icon' ? 'square' : 'bg', { target: { files: [file] } });
-    },
-    selectFont(fontValue) {
-      state.selectedFont = fontValue;
-      state.isFontMenuOpen = false;
-      this.updatePreview('font', { target: { value: fontValue } });
-    },
-    handleClickOutside(event) {
-      const dropdown = document.querySelector('.relative');
-      if (dropdown && !dropdown.contains(event.target)) {
-        state.isFontMenuOpen = false;
-      }
-    },
-    openSettings() {
-      this.showSettings = true;
+    }
+  } catch (error) {
+    console.error('Error loading Bing image:', error)
+  } finally {
+    loading.value = false
+  }
+}
+
+const loadImage = (url: string): Promise<void> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.onload = () => {
+      bgImage.value = img
+      store.setBgImage(url)
+      drawCanvas()
+      resolve()
+    }
+    img.onerror = reject
+    img.src = url
+  })
+}
+
+const drawCanvas = (): void => {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  
+  const width = canvasWidth.value
+  const height = canvasHeight.value
+
+  ctx.clearRect(0, 0, width, height)
+
+  if (bgImage.value) {
+    drawBackgroundImage(ctx, bgImage.value, width, height)
+  } else {
+    const gradient = ctx.createLinearGradient(0, 0, width, height)
+    gradient.addColorStop(0, '#667eea')
+    gradient.addColorStop(1, '#764ba2')
+    ctx.fillStyle = gradient
+    ctx.fillRect(0, 0, width, height)
+  }
+
+  if (store.bgBlur > 0) {
+    ctx.filter = `blur(${store.bgBlur}px)`
+  }
+
+  if (store.overlayOpacity > 0) {
+    ctx.fillStyle = `rgba(0, 0, 0, ${store.overlayOpacity / 100})`
+    ctx.fillRect(0, 0, width, height)
+  }
+
+  ctx.filter = 'none'
+  drawTextToCanvas(ctx, width, height)
+}
+
+const drawBackgroundImage = (ctx: CanvasRenderingContext2D, img: HTMLImageElement, width: number, height: number): void => {
+  const scale = Math.max(width / img.width, height / img.height)
+  const x = (width / 2) - (img.width / 2) * scale
+  const y = (height / 2) - (img.height / 2) * scale
+  ctx.drawImage(img, x, y, img.width * scale, img.height * scale)
+}
+
+const drawTextToCanvas = (ctx: CanvasRenderingContext2D, width: number, height: number): void => {
+  const padding = 60
+  const maxWidth = width - padding * 2
+
+  ctx.textAlign = store.textAlign
+
+  let x: number
+  switch (store.textAlign) {
+    case 'left':
+      x = padding
+      break
+    case 'right':
+      x = width - padding
+      break
+    default:
+      x = width / 2
+  }
+
+  if (store.text) {
+    ctx.fillStyle = store.textColor
+    ctx.font = 'bold 72px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    wrapText(ctx, store.text, x, height / 2 - 30, maxWidth, 80)
+  }
+
+  if (store.subtitle) {
+    ctx.fillStyle = store.textColor
+    ctx.globalAlpha = 0.8
+    ctx.font = '32px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+    wrapText(ctx, store.subtitle, x, height / 2 + 70, maxWidth, 40)
+    ctx.globalAlpha = 1
+  }
+}
+
+const wrapText = (ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxWidth: number, lineHeightPx: number): void => {
+  const chars = text.split('')
+  let line = ''
+  const lines: string[] = []
+
+  for (let i = 0; i < chars.length; i++) {
+    const testLine = line + chars[i]
+    const metrics = ctx.measureText(testLine)
+    if (metrics.width > maxWidth && i > 0) {
+      lines.push(line)
+      line = chars[i]
+    } else {
+      line = testLine
     }
   }
-};
+  lines.push(line)
+
+  const startY = y - ((lines.length - 1) * lineHeightPx) / 2
+  for (let i = 0; i < lines.length; i++) {
+    ctx.fillText(lines[i], x, startY + i * lineHeightPx)
+  }
+}
+
+const startDrag = (): void => {}
+const onDrag = (): void => {}
+const stopDrag = (): void => {}
+
+const setSize = (preset: SizePreset): void => {
+  currentSize.value = preset
+  canvasWidth.value = preset.width
+  canvasHeight.value = preset.height
+  drawCanvas()
+}
+
+const downloadImage = (): void => {
+  const canvas = canvasRef.value
+  if (!canvas) return
+  
+  const link = document.createElement('a')
+  link.download = `cover-${Date.now()}.png`
+  link.href = canvas.toDataURL('image/png')
+  link.click()
+}
+
+const resetSettings = (): void => {
+  store.resetState()
+  bgImage.value = null
+  drawCanvas()
+}
+
+onMounted(() => {
+  loadRandomBingImage()
+})
 </script>
+
+<style scoped>
+.cover-generator {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.header {
+  background: #0a0a0a;
+  border-bottom: 1px solid #1a1a1a;
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.logo svg {
+  width: 28px;
+  height: 28px;
+  color: #667eea;
+}
+
+.random-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.random-btn:hover {
+  background: #2a2a2a;
+  border-color: #3a3a3a;
+}
+
+.random-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.random-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.main {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: 0;
+}
+
+.preview-section {
+  background: #0f0f0f;
+  padding: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.canvas-container {
+  background: #1a1a1a;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.canvas-container canvas {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  border-radius: 4px;
+}
+
+.size-presets {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.preset-btn {
+  padding: 8px 16px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  color: #888;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.preset-btn:hover {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+.preset-btn.active {
+  background: #667eea;
+  border-color: #667eea;
+  color: #fff;
+}
+
+.controls-section {
+  background: #0a0a0a;
+  border-left: 1px solid #1a1a1a;
+  padding: 24px;
+  overflow-y: auto;
+}
+
+.controls-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-group label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.control-group input[type="text"],
+.control-group select {
+  padding: 10px 12px;
+  background: #1a1a1a;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  color: #fff;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.control-group input[type="text"]:focus,
+.control-group select:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.control-group input[type="color"] {
+  width: 100%;
+  height: 40px;
+  background: none;
+  border: 1px solid #2a2a2a;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.control-group input[type="range"] {
+  width: 100%;
+  height: 6px;
+  background: #1a1a1a;
+  border-radius: 3px;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background: #667eea;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.control-group input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);
+}
+
+.control-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.actions {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #1a1a1a;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.action-btn {
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.action-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+.action-btn.primary {
+  background: #667eea;
+  color: #fff;
+}
+
+.action-btn.primary:hover {
+  background: #5a6fd6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.action-btn.secondary {
+  background: #1a1a1a;
+  color: #888;
+  border: 1px solid #2a2a2a;
+}
+
+.action-btn.secondary:hover {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+@media (max-width: 1024px) {
+  .main {
+    grid-template-columns: 1fr;
+  }
+
+  .controls-section {
+    border-left: none;
+    border-top: 1px solid #1a1a1a;
+  }
+}
+
+@media (max-width: 640px) {
+  .preview-section {
+    padding: 20px;
+  }
+
+  .header {
+    padding: 0 16px;
+  }
+
+  .logo span {
+    display: none;
+  }
+}
+</style>

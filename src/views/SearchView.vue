@@ -1,15 +1,12 @@
 <template>
   <div class="search-view">
-    <!-- 背景装饰 -->
     <div class="bg-decoration">
       <div class="gradient-orb orb-1"></div>
       <div class="gradient-orb orb-2"></div>
       <div class="gradient-orb orb-3"></div>
     </div>
 
-    <!-- 主要内容 -->
     <div class="content-wrapper">
-      <!-- 顶部导航 -->
       <nav class="top-nav">
         <div class="nav-brand">
           <div class="brand-icon">
@@ -47,15 +44,12 @@
         </div>
       </nav>
 
-      <!-- 搜索组件 -->
       <SearchInterface
-        ref="searchInterface"
         :placeholder="'输入关键词搜索...'"
         @search="onSearch"
         @result="onResult"
       />
 
-      <!-- 特色功能展示 -->
       <div v-if="!hasSearched" class="features-section">
         <h2 class="features-title">强大功能，简洁体验</h2>
         <div class="features-grid">
@@ -106,7 +100,6 @@
       </div>
     </div>
 
-    <!-- 设置Modal -->
     <transition name="fade">
       <div v-if="showSettings" class="settings-modal" @click="showSettings = false">
         <div class="settings-content" @click.stop>
@@ -155,58 +148,44 @@
   </div>
 </template>
 
-<script>
-import { ref, reactive, onMounted } from 'vue';
-import SearchInterface from '@/components/SearchInterface.vue';
+<script setup lang="ts">
+import { ref, reactive, onMounted } from 'vue'
+import SearchInterface from '@/components/SearchInterface.vue'
 
-export default {
-  name: 'SearchView',
-  components: {
-    SearchInterface
-  },
-  setup() {
-    const searchInterface = ref(null);
-    const hasSearched = ref(false);
-    const showSettings = ref(false);
+const hasSearched = ref(false)
+const showSettings = ref(false)
 
-    const settings = reactive({
-      language: 'zh-CN',
-      safeSearch: 'moderate',
-      count: 10
-    });
+const settings = reactive({
+  language: 'zh-CN',
+  safeSearch: 'moderate',
+  count: 10
+})
 
-    const onSearch = ({ query, results }) => {
-      hasSearched.value = true;
-      console.log('Search:', query, results);
-    };
+interface SearchEventData {
+  query: string
+  results: unknown
+}
 
-    const onResult = (results) => {
-      console.log('Results:', results);
-    };
+const onSearch = ({ query, results }: SearchEventData): void => {
+  hasSearched.value = true
+  console.log('Search:', query, results)
+}
 
-    const saveSettings = () => {
-      localStorage.setItem('search-settings', JSON.stringify(settings));
-      showSettings.value = false;
-    };
+const onResult = (results: unknown): void => {
+  console.log('Results:', results)
+}
 
-    onMounted(() => {
-      const saved = localStorage.getItem('search-settings');
-      if (saved) {
-        Object.assign(settings, JSON.parse(saved));
-      }
-    });
+const saveSettings = (): void => {
+  localStorage.setItem('search-settings', JSON.stringify(settings))
+  showSettings.value = false
+}
 
-    return {
-      searchInterface,
-      hasSearched,
-      showSettings,
-      settings,
-      onSearch,
-      onResult,
-      saveSettings
-    };
+onMounted(() => {
+  const saved = localStorage.getItem('search-settings')
+  if (saved) {
+    Object.assign(settings, JSON.parse(saved))
   }
-};
+})
 </script>
 
 <style scoped>
@@ -216,7 +195,6 @@ export default {
   position: relative;
 }
 
-/* 背景装饰 */
 .bg-decoration {
   position: fixed;
   inset: 0;
@@ -257,7 +235,6 @@ export default {
   transform: translate(-50%, -50%);
 }
 
-/* 内容包装器 */
 .content-wrapper {
   position: relative;
   z-index: 1;
@@ -266,7 +243,6 @@ export default {
   padding: 40px 20px;
 }
 
-/* 顶部导航 */
 .top-nav {
   display: flex;
   justify-content: space-between;
@@ -337,7 +313,6 @@ export default {
   height: 16px;
 }
 
-/* 特色功能 */
 .features-section {
   margin-top: 60px;
   animation: fadeInUp 0.6s ease;
@@ -429,7 +404,6 @@ export default {
   margin: 0;
 }
 
-/* 设置Modal */
 .settings-modal {
   position: fixed;
   inset: 0;
@@ -551,7 +525,6 @@ export default {
   background: #1d4ed8;
 }
 
-/* 过渡动画 */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s ease;
@@ -562,7 +535,6 @@ export default {
   opacity: 0;
 }
 
-/* 响应式 */
 @media (max-width: 768px) {
   .content-wrapper {
     padding: 20px 16px;

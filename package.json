@@ -9,18 +9,32 @@
     "build:skip-type": "vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext .vue,.js,.jsx,.ts,.tsx --fix",
-    "format": "prettier --write \"src/**/*.{vue,js,ts,css,scss}\""
+    "format": "prettier --write \"src/**/*.{vue,js,ts,css,scss}\"",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@iconify/vue": "^4.1.2",
+    "pinia": "^3.0.4",
     "vue": "^3.4.21",
     "vue-router": "^4.6.4"
   },
   "devDependencies": {
+    "@types/node": "^25.5.0",
     "@vitejs/plugin-vue": "^5.0.4",
+    "@vitest/coverage-v8": "^2.1.9",
+    "@vue/test-utils": "^2.4.6",
     "autoprefixer": "^10.4.20",
+    "eslint": "^10.1.0",
+    "eslint-plugin-vue": "^10.8.0",
+    "jsdom": "^29.0.1",
     "postcss": "^8.4.35",
+    "prettier": "^3.8.1",
     "tailwindcss": "^3.4.1",
-    "vite": "^5.1.6"
+    "typescript": "^5.9.3",
+    "vite": "^5.1.6",
+    "vitest": "^2.1.9",
+    "vue-tsc": "^3.2.6"
   }
 }

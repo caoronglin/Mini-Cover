@@ -26,7 +26,6 @@
       <button class="text-pink-500 font-bold" @click="toggleTips">小提示</button>
     </div>
     
-    <!-- 小提示弹窗 -->
     <div class="fixed top-0 left-1/2 w-[90%] max-w-[600px] max-h-[82px] p-[10px] mt-[10px] bg-white text-[#333] rounded-[10px] shadow-[0_4px_8px_#0000001a] z-100 flex flex-col justify-center items-center text-center overflow-hidden transition-all duration-300 ease-in-out"
          :style="{
            opacity: showTipsPopup ? 1 : 0,
@@ -43,23 +42,18 @@
   </footer>
 </template>
 
-<script>
-export default {
-  data() {
-    return {
-      showTipsPopup: false,
-      icpNumber: import.meta.env.VITE_APP_ICP_NUMBER
-    };
-  },
-  methods: {
-    toggleTips() {
-      this.showTipsPopup = !this.showTipsPopup;
-      if (this.showTipsPopup) {
-        setTimeout(() => {
-          this.showTipsPopup = false;
-        }, 3000);
-      }
-    }
+<script setup lang="ts">
+import { ref } from 'vue'
+
+const showTipsPopup = ref(false)
+const icpNumber = ref(import.meta.env.VITE_APP_ICP_NUMBER)
+
+const toggleTips = (): void => {
+  showTipsPopup.value = !showTipsPopup.value
+  if (showTipsPopup.value) {
+    setTimeout(() => {
+      showTipsPopup.value = false
+    }, 3000)
   }
-};
+}
 </script>

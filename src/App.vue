@@ -1,21 +1,26 @@
 <template>
-  <div class="min-h-screen flex flex-col">
-    <HeaderComponent class="py-4" />
-    <CoverGenerator class="flex-1" />
-    <FooterComponent />
+  <div class="app">
+    <router-view />
   </div>
 </template>
 
-<script>
-import HeaderComponent from './components/HeaderComponent.vue';
-import CoverGenerator from './components/CoverGenerator.vue';
-import FooterComponent from './components/FooterComponent.vue';
-
-export default {
-  components: {
-    HeaderComponent,
-    CoverGenerator,
-    FooterComponent
-  }
-};
+<script setup lang="ts">
 </script>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: #0f0f0f;
+  color: #fff;
+}
+
+.app {
+  min-height: 100vh;
+}
+</style>

@@ -1,6 +1,5 @@
 <template>
   <div class="search-interface">
-    <!-- 搜索头部 -->
     <div class="search-header">
       <div class="logo">
         <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -14,7 +13,6 @@
       </div>
     </div>
 
-    <!-- 搜索框 -->
     <div class="search-container">
       <div class="search-box" :class="{ 'has-suggestions': suggestions.length > 0 }">
         <input
@@ -23,14 +21,14 @@
           class="search-input"
           :placeholder="placeholder"
           @input="onInput"
-          @keydown.enter="search"
+          @keydown.enter="doSearch"
           @keydown.down="selectNext"
           @keydown.up="selectPrev"
           @focus="onFocus"
           @blur="onBlur"
-          ref="input"
+          ref="inputRef"
         />
-        <button class="search-btn" @click="search" :disabled="loading">
+        <button class="search-btn" @click="() => doSearch()" :disabled="loading">
           <svg v-if="!loading" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="11" cy="11" r="8"/>
             <path d="m21 21-4.35-4.35"/>
@@ -39,7 +37,6 @@
         </button>
       </div>
 
-      <!-- 搜索建议 -->
       <transition name="slide-down">
         <div v-if="suggestions.length > 0 && showSuggestions" class="suggestions">
           <div
@@ -63,7 +60,6 @@
       </transition>
     </div>
 
-    <!-- 搜索类型切换 -->
     <div class="search-types">
       <button
         v-for="type in searchTypes"
@@ -72,20 +68,25 @@
         :class="{ active: searchType === type.value }"
         @click="setSearchType(type.value)"
       >
-        <svg v-if="type.icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path v-if="type.icon === 'web'" d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
-          <rect v-if="type.icon === 'image'" x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-          <circle v-if="type.icon === 'image'" cx="8.5" cy="8.5" r="1.5"/>
-          <path v-if="type.icon === 'image'" d="M21 15l-5-5L5 21"/>
-          <path v-if="type.icon === 'news'" d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/>
-          <path v-if="type.icon === 'video'" d="M23 7l-7 5 7 5V7z"/>
-          <rect v-if="type.icon === 'video'" x="1" y="5" width="15" height="14" rx="2" ry="2"/>
+        <svg v-if="type.icon === 'web'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/>
+        </svg>
+        <svg v-else-if="type.icon === 'image'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+          <circle cx="8.5" cy="8.5" r="1.5"/>
+          <path d="M21 15l-5-5L5 21"/>
+        </svg>
+        <svg v-else-if="type.icon === 'news'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 22h16a2 2 0 002-2V4a2 2 0 00-2-2H8a2 2 0 00-2 2v16a2 2 0 01-2 2zm0 0a2 2 0 01-2-2v-9c0-1.1.9-2 2-2h2"/>
+        </svg>
+        <svg v-else-if="type.icon === 'video'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M23 7l-7 5 7 5V7z"/>
+          <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
         </svg>
         {{ type.label }}
       </button>
     </div>
 
-    <!-- 搜索结果区域 -->
     <div v-if="results" class="results-area">
       <div class="results-header">
         <span class="results-count">
@@ -109,7 +110,6 @@
         </div>
       </div>
 
-      <!-- 网页结果 -->
       <div v-if="searchType === 'web' && results.webPages?.value" class="web-results">
         <div
           v-for="(item, index) in results.webPages.value"
@@ -139,7 +139,6 @@
         </div>
       </div>
 
-      <!-- 图片结果 -->
       <div v-if="searchType === 'image' && results.images?.value" class="image-results">
         <div
           v-for="(item, index) in results.images.value"
@@ -159,61 +158,7 @@
         </div>
       </div>
 
-      <!-- 新闻结果 -->
-      <div v-if="searchType === 'news' && results.news?.value" class="news-results">
-        <div
-          v-for="(item, index) in results.news.value"
-          :key="index"
-          class="news-item"
-        >
-          <div class="news-header">
-            <img v-if="item.image?.thumbnail?.contentUrl" :src="item.image.thumbnail.contentUrl" class="news-thumb" />
-            <div class="news-meta">
-              <span class="news-provider">{{ item.provider?.[0]?.name }}</span>
-              <span class="news-date">{{ formatDate(item.datePublished) }}</span>
-            </div>
-          </div>
-          <a :href="item.url" class="news-title" target="_blank" rel="noopener">
-            {{ item.name }}
-          </a>
-          <p class="news-description">{{ item.description }}</p>
-          <div v-if="item.category" class="news-category">
-            <span class="category-tag">{{ item.category }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- 视频结果 -->
-      <div v-if="searchType === 'video' && results.videos?.value" class="video-results">
-        <div
-          v-for="(item, index) in results.videos.value"
-          :key="index"
-          class="video-item"
-          @click="openVideo(item)"
-        >
-          <div class="video-thumbnail">
-            <img :src="item.thumbnailUrl" :alt="item.name" />
-            <span class="video-duration">{{ formatDuration(item.duration) }}</span>
-            <div class="play-overlay">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M8 5v14l11-7z"/>
-              </svg>
-            </div>
-          </div>
-          <div class="video-info">
-            <h4 class="video-title">{{ item.name }}</h4>
-            <div class="video-meta">
-              <span class="video-creator">{{ item.creator?.name }}</span>
-              <span class="video-views">{{ formatViews(item.viewCount) }}次观看</span>
-              <span class="video-date">{{ formatDate(item.datePublished) }}</span>
-            </div>
-            <p class="video-description">{{ truncate(item.description, 100) }}</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 分页 -->
-      <div v-if="results && hasMoreResults" class="pagination">
+      <div v-if="hasMoreResults" class="pagination">
         <button
           class="load-more-btn"
           @click="loadMore"
@@ -225,7 +170,6 @@
       </div>
     </div>
 
-    <!-- 空状态 -->
     <div v-if="!results && !loading && hasSearched" class="empty-state">
       <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/>
@@ -234,7 +178,6 @@
       <p>未找到相关结果，请尝试其他关键词</p>
     </div>
 
-    <!-- 图片预览Modal -->
     <transition name="fade">
       <div v-if="previewImage" class="image-preview-modal" @click="closePreview">
         <div class="preview-content" @click.stop>
@@ -257,315 +200,260 @@
   </div>
 </template>
 
-<script>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { search, getSuggestions, SearchParams } from '@/api/search.js';
+<script setup lang="ts">
+import { ref, computed, watch, onMounted } from 'vue'
+import { search, getSuggestions } from '@/api/search'
 
-export default {
-  name: 'SearchInterface',
-  props: {
-    placeholder: {
-      type: String,
-      default: '搜索...'
-    },
-    initialQuery: {
-      type: String,
-      default: ''
+interface WebPageItem {
+  url: string
+  name: string
+  displayUrl: string
+  snippet: string
+  deepLinks?: { url: string; name: string }[]
+}
+
+interface ImageItem {
+  thumbnailUrl: string
+  name: string
+  width?: number
+  height?: number
+  contentUrl?: string
+  hostPageUrl?: string
+}
+
+interface SearchResults {
+  totalEstimatedMatches?: number
+  elapsedTime?: number
+  webPages?: { value: WebPageItem[] }
+  images?: { value: ImageItem[] }
+  news?: { value: unknown[] }
+  videos?: { value: unknown[] }
+}
+
+interface Props {
+  placeholder?: string
+  initialQuery?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  placeholder: '搜索...',
+  initialQuery: ''
+})
+
+const emit = defineEmits<{
+  search: [payload: { query: string; results: SearchResults | null }]
+  result: [results: SearchResults | null]
+}>()
+
+const query = ref(props.initialQuery)
+const loading = ref(false)
+const loadingMore = ref(false)
+const suggestions = ref<string[]>([])
+const showSuggestions = ref(false)
+const selectedIndex = ref(-1)
+const results = ref<SearchResults | null>(null)
+const searchType = ref('web')
+const hasSearched = ref(false)
+const lastSearch = ref<Date | null>(null)
+const previewImage = ref<ImageItem | null>(null)
+const inputRef = ref<HTMLInputElement | null>(null)
+
+const imageFilter = ref({
+  size: '',
+  type: ''
+})
+
+interface SearchTypeOption {
+  value: string
+  label: string
+  icon: string
+}
+
+const searchTypes: SearchTypeOption[] = [
+  { value: 'web', label: '网页', icon: 'web' },
+  { value: 'image', label: '图片', icon: 'image' },
+  { value: 'news', label: '新闻', icon: 'news' },
+  { value: 'video', label: '视频', icon: 'video' }
+]
+
+const hasMoreResults = computed(() => {
+  if (!results.value) return false
+  const total = results.value.totalEstimatedMatches || 0
+  const current = (results.value.webPages?.value?.length || 0) +
+                  (results.value.images?.value?.length || 0)
+  return current < total
+})
+
+let debounceTimeout: ReturnType<typeof setTimeout> | null = null
+
+const onInput = (): void => {
+  if (debounceTimeout) clearTimeout(debounceTimeout)
+  debounceTimeout = setTimeout(async () => {
+    if (query.value.length < 2) {
+      suggestions.value = []
+      return
     }
-  },
-  emits: ['search', 'result'],
-  setup(props, { emit }) {
-    // 状态
-    const query = ref(props.initialQuery);
-    const loading = ref(false);
-    const loadingMore = ref(false);
-    const suggestions = ref([]);
-    const showSuggestions = ref(false);
-    const selectedIndex = ref(-1);
-    const results = ref(null);
-    const searchType = ref('web');
-    const hasSearched = ref(false);
-    const lastSearch = ref(null);
-    const previewImage = ref(null);
-    const input = ref(null);
+    try {
+      suggestions.value = await getSuggestions(query.value)
+      showSuggestions.value = true
+      selectedIndex.value = -1
+    } catch (error) {
+      console.error('获取建议失败:', error)
+    }
+  }, 200)
+}
 
-    // 图片筛选
-    const imageFilter = ref({
-      size: '',
-      type: ''
-    });
+const doSearch = async (loadMore = false): Promise<void> => {
+  if (!query.value.trim()) return
 
-    // 搜索类型
-    const searchTypes = [
-      { value: 'web', label: '网页', icon: 'web' },
-      { value: 'image', label: '图片', icon: 'image' },
-      { value: 'news', label: '新闻', icon: 'news' },
-      { value: 'video', label: '视频', icon: 'video' }
-    ];
+  loading.value = !loadMore
+  loadingMore.value = loadMore
+  showSuggestions.value = false
+  hasSearched.value = true
 
-    // 计算属性
-    const hasMoreResults = computed(() => {
-      if (!results.value) return false;
-      const total = results.value.totalEstimatedMatches || 0;
-      const current = (results.value.webPages?.value?.length || 0) +
-                     (results.value.images?.value?.length || 0) +
-                     (results.value.news?.value?.length || 0) +
-                     (results.value.videos?.value?.length || 0);
-      return current < total;
-    });
-
-    // 方法
-    const onInput = debounce(async () => {
-      if (query.value.length < 2) {
-        suggestions.value = [];
-        return;
-      }
-
-      try {
-        suggestions.value = await getSuggestions(query.value);
-        showSuggestions.value = true;
-        selectedIndex.value = -1;
-      } catch (error) {
-        console.error('获取建议失败:', error);
-      }
-    }, 200);
-
-    const search = async (loadMore = false) => {
-      if (!query.value.trim()) return;
-
-      loading.value = !loadMore;
-      loadingMore.value = loadMore;
-      showSuggestions.value = false;
-      hasSearched.value = true;
-
-      try {
-        const options = {
-          type: searchType.value,
-          count: 10,
-          offset: loadMore ? (results.value?.webPages?.value?.length || 0) : 0,
-          ...imageFilter.value
-        };
-
-        const data = await search(query.value, options);
-
-        if (loadMore && results.value) {
-          // 合并结果
-          mergeResults(data.results);
-        } else {
-          results.value = data.results;
-        }
-
-        lastSearch.value = new Date();
-        emit('search', { query: query.value, results: data.results });
-        emit('result', data.results);
-      } catch (error) {
-        console.error('搜索失败:', error);
-        results.value = null;
-      } finally {
-        loading.value = false;
-        loadingMore.value = false;
-      }
-    };
-
-    const loadMore = () => {
-      search(true);
-    };
-
-    const setSearchType = (type) => {
-      searchType.value = type;
-      if (query.value) {
-        search();
-      }
-    };
-
-    const selectSuggestion = (suggestion) => {
-      query.value = suggestion;
-      suggestions.value = [];
-      showSuggestions.value = false;
-      search();
-    };
-
-    const selectNext = () => {
-      if (suggestions.value.length === 0) return;
-      selectedIndex.value = (selectedIndex.value + 1) % suggestions.value.length;
-      query.value = suggestions.value[selectedIndex.value];
-    };
-
-    const selectPrev = () => {
-      if (suggestions.value.length === 0) return;
-      selectedIndex.value = selectedIndex.value <= 0
-        ? suggestions.value.length - 1
-        : selectedIndex.value - 1;
-      query.value = suggestions.value[selectedIndex.value];
-    };
-
-    const onFocus = () => {
-      if (suggestions.value.length > 0) {
-        showSuggestions.value = true;
-      }
-    };
-
-    const onBlur = () => {
-      setTimeout(() => {
-        showSuggestions.value = false;
-      }, 200);
-    };
-
-    const openImage = (image) => {
-      previewImage.value = image;
-    };
-
-    const closePreview = () => {
-      previewImage.value = null;
-    };
-
-    const refineSearch = () => {
-      search();
-    };
-
-    // 辅助方法
-    const mergeResults = (newResults) => {
-      if (!results.value) return;
-
-      ['webPages', 'images', 'news', 'videos'].forEach(type => {
-        if (newResults[type]?.value && results.value[type]?.value) {
-          results.value[type].value.push(...newResults[type].value);
-        }
-      });
-    };
-
-    const getFavicon = (url) => {
-      try {
-        const domain = new URL(url).hostname;
-        return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`;
-      } catch {
-        return '';
-      }
-    };
-
-    const formatNumber = (num) => {
-      if (num >= 1000000) {
-        return (num / 1000000).toFixed(1) + 'M';
-      }
-      if (num >= 1000) {
-        return (num / 1000).toFixed(1) + 'K';
-      }
-      return num.toString();
-    };
-
-    const formatDate = (dateStr) => {
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diff = now - date;
-
-      const minutes = Math.floor(diff / 60000);
-      const hours = Math.floor(diff / 3600000);
-      const days = Math.floor(diff / 86400000);
-
-      if (minutes < 60) return `${minutes}分钟前`;
-      if (hours < 24) return `${hours}小时前`;
-      if (days < 7) return `${days}天前`;
-
-      return date.toLocaleDateString('zh-CN');
-    };
-
-    const formatDuration = (duration) => {
-      if (!duration) return '';
-      const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-      if (!match) return '';
-
-      const hours = match[1] || 0;
-      const minutes = match[2] || 0;
-      const seconds = match[3] || 0;
-
-      if (hours > 0) {
-        return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-      }
-      return `${minutes}:${String(seconds).padStart(2, '0')}`;
-    };
-
-    const formatViews = (views) => {
-      if (!views) return '0';
-      return formatNumber(parseInt(views));
-    };
-
-    const truncate = (text, length) => {
-      if (!text || text.length <= length) return text;
-      return text.substring(0, length) + '...';
-    };
-
-    const formatTime = (date) => {
-      if (!date) return '';
-      return date.toLocaleTimeString('zh-CN', {
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    };
-
-    // 防抖函数
-    function debounce(fn, delay) {
-      let timeout;
-      return (...args) => {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => fn.apply(this, args), delay);
-      };
+  try {
+    const options = {
+      count: 10,
+      offset: loadMore ? (results.value?.webPages?.value?.length || 0) : 0,
+      ...imageFilter.value,
+      type: searchType.value
     }
 
-    // 监听initialQuery变化
-    watch(() => props.initialQuery, (newQuery) => {
-      if (newQuery && newQuery !== query.value) {
-        query.value = newQuery;
-        search();
-      }
-    });
+    const data = await search(query.value, options)
+    const searchResults = data.results as SearchResults
 
-    // 生命周期
-    onMounted(() => {
-      if (props.initialQuery) {
-        query.value = props.initialQuery;
-        search();
-      }
-      input.value?.focus();
-    });
+    if (loadMore && results.value) {
+      mergeResults(searchResults)
+    } else {
+      results.value = searchResults
+    }
 
-    return {
-      query,
-      loading,
-      loadingMore,
-      suggestions,
-      showSuggestions,
-      selectedIndex,
-      results,
-      searchType,
-      hasSearched,
-      lastSearch,
-      previewImage,
-      input,
-      imageFilter,
-      searchTypes,
-      hasMoreResults,
-      onInput,
-      search,
-      loadMore,
-      setSearchType,
-      selectSuggestion,
-      selectNext,
-      selectPrev,
-      onFocus,
-      onBlur,
-      openImage,
-      closePreview,
-      refineSearch,
-      getFavicon,
-      formatNumber,
-      formatDate,
-      formatDuration,
-      formatViews,
-      truncate,
-      formatTime
-    };
+    lastSearch.value = new Date()
+    emit('search', { query: query.value, results: searchResults })
+    emit('result', searchResults)
+  } catch (error) {
+    console.error('搜索失败:', error)
+    results.value = null
+  } finally {
+    loading.value = false
+    loadingMore.value = false
   }
-};
+}
+
+const loadMore = (): void => {
+  doSearch(true)
+}
+
+const setSearchType = (type: string): void => {
+  searchType.value = type
+  if (query.value) {
+    doSearch()
+  }
+}
+
+const selectSuggestion = (suggestion: string): void => {
+  query.value = suggestion
+  suggestions.value = []
+  showSuggestions.value = false
+  doSearch()
+}
+
+const selectNext = (): void => {
+  if (suggestions.value.length === 0) return
+  selectedIndex.value = (selectedIndex.value + 1) % suggestions.value.length
+  query.value = suggestions.value[selectedIndex.value]
+}
+
+const selectPrev = (): void => {
+  if (suggestions.value.length === 0) return
+  selectedIndex.value = selectedIndex.value <= 0
+    ? suggestions.value.length - 1
+    : selectedIndex.value - 1
+  query.value = suggestions.value[selectedIndex.value]
+}
+
+const onFocus = (): void => {
+  if (suggestions.value.length > 0) {
+    showSuggestions.value = true
+  }
+}
+
+const onBlur = (): void => {
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+const openImage = (image: ImageItem): void => {
+  previewImage.value = image
+}
+
+const closePreview = (): void => {
+  previewImage.value = null
+}
+
+const refineSearch = (): void => {
+  doSearch()
+}
+
+const mergeResults = (newResults: SearchResults): void => {
+  if (!results.value) return
+  const types = ['webPages', 'images', 'news', 'videos'] as const
+  types.forEach(type => {
+    const newType = newResults[type]
+    const existingType = results.value![type]
+    if (newType?.value && existingType?.value) {
+      (existingType.value as unknown[]).push(...newType.value)
+    }
+  })
+}
+
+const getFavicon = (url: string): string => {
+  try {
+    const domain = new URL(url).hostname
+    return `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
+  } catch {
+    return ''
+  }
+}
+
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) {
+    return (num / 1000000).toFixed(1) + 'M'
+  }
+  if (num >= 1000) {
+    return (num / 1000).toFixed(1) + 'K'
+  }
+  return num.toString()
+}
+
+const truncate = (text: string, length: number): string => {
+  if (!text || text.length <= length) return text
+  return text.substring(0, length) + '...'
+}
+
+const formatTime = (date: Date): string => {
+  if (!date) return ''
+  return date.toLocaleTimeString('zh-CN', {
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+watch(() => props.initialQuery, (newQuery) => {
+  if (newQuery && newQuery !== query.value) {
+    query.value = newQuery
+    doSearch()
+  }
+})
+
+onMounted(() => {
+  if (props.initialQuery) {
+    query.value = props.initialQuery
+    doSearch()
+  }
+  inputRef.value?.focus()
+})
 </script>
 
 <style scoped>
@@ -576,7 +464,6 @@ export default {
   padding: 20px;
 }
 
-/* 头部 */
 .search-header {
   display: flex;
   justify-content: space-between;
@@ -609,7 +496,6 @@ export default {
   color: #6b7280;
 }
 
-/* 搜索框 */
 .search-container {
   position: relative;
   margin-bottom: 16px;
@@ -689,7 +575,6 @@ export default {
   to { transform: rotate(360deg); }
 }
 
-/* 搜索建议 */
 .suggestions {
   position: absolute;
   top: 100%;
@@ -741,7 +626,6 @@ export default {
   opacity: 1;
 }
 
-/* 搜索类型切换 */
 .search-types {
   display: flex;
   gap: 8px;
@@ -780,7 +664,6 @@ export default {
   height: 16px;
 }
 
-/* 结果区域 */
 .results-area {
   animation: fadeIn 0.3s ease;
 }
@@ -818,7 +701,6 @@ export default {
   cursor: pointer;
 }
 
-/* 网页结果 */
 .web-results {
   display: flex;
   flex-direction: column;
@@ -896,7 +778,6 @@ export default {
   text-decoration: underline;
 }
 
-/* 图片结果 */
 .image-results {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
@@ -950,200 +831,6 @@ export default {
   color: #6b7280;
 }
 
-/* 新闻结果 */
-.news-results {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.news-item {
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  transition: all 0.2s;
-}
-
-.news-item:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.news-header {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.news-thumb {
-  width: 80px;
-  height: 60px;
-  object-fit: cover;
-  border-radius: 6px;
-}
-
-.news-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.news-provider {
-  font-size: 13px;
-  font-weight: 500;
-  color: #111827;
-}
-
-.news-date {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.news-title {
-  display: block;
-  font-size: 16px;
-  font-weight: 600;
-  color: #1d4ed8;
-  text-decoration: none;
-  margin-bottom: 8px;
-  line-height: 1.4;
-}
-
-.news-title:hover {
-  text-decoration: underline;
-}
-
-.news-description {
-  font-size: 14px;
-  color: #4b5563;
-  line-height: 1.6;
-  margin: 0 0 12px;
-}
-
-.news-category {
-  display: flex;
-  gap: 8px;
-}
-
-.category-tag {
-  font-size: 11px;
-  padding: 4px 8px;
-  background: #eff6ff;
-  color: #1d4ed8;
-  border-radius: 4px;
-}
-
-/* 视频结果 */
-.video-results {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.video-item {
-  display: flex;
-  gap: 16px;
-  padding: 16px;
-  background: white;
-  border-radius: 12px;
-  border: 1px solid #e5e7eb;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.video-item:hover {
-  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-}
-
-.video-thumbnail {
-  position: relative;
-  width: 240px;
-  flex-shrink: 0;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-.video-thumbnail img {
-  width: 100%;
-  height: 135px;
-  object-fit: cover;
-}
-
-.video-duration {
-  position: absolute;
-  bottom: 8px;
-  right: 8px;
-  padding: 2px 6px;
-  background: rgba(0,0,0,0.8);
-  color: white;
-  font-size: 12px;
-  border-radius: 4px;
-}
-
-.play-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(0,0,0,0.3);
-  opacity: 0;
-  transition: opacity 0.2s;
-}
-
-.video-item:hover .play-overlay {
-  opacity: 1;
-}
-
-.play-overlay svg {
-  width: 48px;
-  height: 48px;
-  color: white;
-}
-
-.video-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.video-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0 0 8px;
-  line-height: 1.4;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-.video-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.video-creator,
-.video-views,
-.video-date {
-  font-size: 13px;
-  color: #6b7280;
-}
-
-.video-description {
-  font-size: 14px;
-  color: #4b5563;
-  line-height: 1.5;
-  margin: 0;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-
-/* 分页 */
 .pagination {
   display: flex;
   justify-content: center;
@@ -1176,7 +863,6 @@ export default {
   opacity: 0.7;
 }
 
-/* 空状态 */
 .empty-state {
   display: flex;
   flex-direction: column;
@@ -1192,7 +878,6 @@ export default {
   opacity: 0.5;
 }
 
-/* 图片预览Modal */
 .image-preview-modal {
   position: fixed;
   inset: 0;
@@ -1275,7 +960,6 @@ export default {
   height: 20px;
 }
 
-/* 过渡动画 */
 .slide-down-enter-active,
 .slide-down-leave-active {
   transition: all 0.2s ease;
@@ -1297,7 +981,6 @@ export default {
   opacity: 0;
 }
 
-/* 响应式 */
 @media (max-width: 768px) {
   .search-interface {
     padding: 12px;
@@ -1314,19 +997,6 @@ export default {
 
   .type-btn {
     white-space: nowrap;
-  }
-
-  .video-item {
-    flex-direction: column;
-  }
-
-  .video-thumbnail {
-    width: 100%;
-  }
-
-  .video-thumbnail img {
-    height: auto;
-    aspect-ratio: 16/9;
   }
 
   .image-results {
